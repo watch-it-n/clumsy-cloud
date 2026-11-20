@@ -5,6 +5,11 @@ _CAPTION_FILE_EXTENSION = re.compile(
     r"\.(?P<extension>mkv|mp4|avi|mov|webm|m4v|mpg|mpeg|ts|flv|wmv)(?=\s|$)",
     flags=re.IGNORECASE,
 )
+_JOIN_MARKER = re.compile(r"Join\s*\[[^\]]*\]", flags=re.IGNORECASE)
+_VIDEO_FILE_EXTENSION = re.compile(
+    r"\.(?P<extension>mkv|mp4|avi|mov|webm|m4v|mpg|mpeg|ts|flv|wmv)$",
+    flags=re.IGNORECASE,
+)
 
 
 def replace_last_filename_word(file_name: str) -> str:
@@ -21,6 +26,8 @@ def replace_last_filename_word(file_name: str) -> str:
 
 def append_infinity_to_caption_filename(caption: str) -> str:
     """Refine a caption's filename and drop any text after its extension."""
+    caption = _JOIN_MARKER.sub("", str(caption or ""))
+    caption = re.sub(r"[ \t]+", " ", caption).strip()
     match = _CAPTION_FILE_EXTENSION.search(caption)
     if not match:
         return caption
@@ -40,10 +47,27 @@ def append_infinity_to_caption_filename(caption: str) -> str:
 
 
 def refine_file_caption(caption: str, fallback_file_name: str = "") -> str:
-    """Refine a filename-like caption, falling back to Telegram's filename."""
-    caption = str(caption or "").strip()
+    """Refine a caption filename, using the Telegram filename's extension if needed."""
+    caption = _JOIN_MARKER.sub("", str(caption or ""))
+    caption = re.sub(r"[ \t]+", " ", caption).strip()
     refined = append_infinity_to_caption_filename(caption)
-    if refined != caption:
+    if _CAPTION_FILE_EXTENSION.search(caption):
         return refined
+
+    # Captions without a video extension often contain metadata below the filename.
+    # Keep only the first line (or tab-delimited field) as the filename candidate.
+    filename = re.split(r"[\r\n\t]", caption, maxsplit=1)[0].strip()
+    if not filename:
+        filename = str(fallback_file_name or "").strip()
     fallback = str(fallback_file_name or "").strip()
-    return append_infinity_to_caption_filename(fallback) or caption
+    extension_match = _VIDEO_FILE_EXTENSION.search(fallback)
+    extension = extension_match.group("extension") if extension_match else "mkv"
+    filename_match = _VIDEO_FILE_EXTENSION.search(filename)
+    if filename_match:
+        extension = filename_match.group("extension")
+        filename = filename[:filename_match.start()]
+
+    filename = filename.rstrip(" .")
+    if not filename:
+        filename = os.path.splitext(fallback)[0].strip() or "Infinity"
+    return append_infinity_to_caption_filename(f"{filename}.{extension}")

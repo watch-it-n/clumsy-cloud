@@ -5,7 +5,7 @@
 from pyrogram import Client, filters
 from info import CHANNELS
 from database.ia_filterdb import save_file
-from poppy.util.file_name import append_infinity_to_caption_filename
+from poppy.util.file_name import refine_file_caption
 
 media_filter = filters.document | filters.video
 
@@ -13,7 +13,7 @@ media_filter = filters.document | filters.video
 async def media(bot, message):
     media = getattr(message, message.media.value, None)
     raw_caption = str(message.caption).strip() if message.caption else ""
-    refined_caption = append_infinity_to_caption_filename(raw_caption) if raw_caption else ""
+    refined_caption = refine_file_caption(raw_caption, media.file_name) if raw_caption else ""
     media.caption = refined_caption or message.caption
     if refined_caption and refined_caption != raw_caption:
         try:
