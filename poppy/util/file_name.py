@@ -5,7 +5,9 @@ _CAPTION_FILE_EXTENSION = re.compile(
     r"\.(?P<extension>mkv|mp4|avi|mov|webm|m4v|mpg|mpeg|ts|flv|wmv)(?=\s|$)",
     flags=re.IGNORECASE,
 )
-_JOIN_MARKER = re.compile(r"Join\s*\[[^\]]*\]", flags=re.IGNORECASE)
+# Strip join links in both ordinary and escaped-caption forms (for example,
+# ``Join ~ [link]`` and ``Join \~ [link]\``).
+_JOIN_MARKER = re.compile(r"Join\s*\\?~?\s*\[[^\]]*\]\\?", flags=re.IGNORECASE)
 _VIDEO_FILE_EXTENSION = re.compile(
     r"\.(?P<extension>mkv|mp4|avi|mov|webm|m4v|mpg|mpeg|ts|flv|wmv)$",
     flags=re.IGNORECASE,
